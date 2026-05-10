@@ -12,6 +12,8 @@ import ReportsPage from '../pages/reports/ReportsPage';
 import RoadmapPage from '../pages/roadmap/RoadmapPage';
 import DocumentsPage from '../pages/documents/DocumentsPage';
 import AdminDashboardPage from '../pages/dashboard/AdminDashboardPage';
+import PrivateRoute from './PrivateRoute';
+import PublicRoute from './PublicRoute';
 
 /**
  * AppRoutes — rutas de la aplicación.
@@ -24,15 +26,23 @@ import AdminDashboardPage from '../pages/dashboard/AdminDashboardPage';
 const AppRoutes: React.FC = () => {
   return (
     <IonRouterOutlet>
-      <Route exact path="/login" component={LoginPage} />
-      <Route exact path="/register" component={RegisterPage} />
-      <Route exact path="/dashboard" component={DashboardPage} />
-      <Route exact path="/profile" component={ProfilePage} />
-      <Route exact path="/search" component={SearchPage} />
-      <Route exact path="/reports" component={ReportsPage} />
-      <Route exact path="/roadmap" component={RoadmapPage} />
-      <Route exact path="/documents" component={DocumentsPage} />
-      <Route exact path="/admin/dashboard" component={AdminDashboardPage} />
+
+      {/* Públicas */}
+      <PublicRoute exact path="/login" component={LoginPage} restricted />
+      <PublicRoute exact path="/register" component={RegisterPage} restricted />
+
+      {/* Protegidas — requieren autenticación */}
+      <PrivateRoute exact path="/dashboard" component={DashboardPage} />
+      <PrivateRoute exact path="/profile" component={ProfilePage} />
+      <PrivateRoute exact path="/search" component={SearchPage} />
+      <PrivateRoute exact path="/reports" component={ReportsPage} />
+      <PrivateRoute exact path="/roadmap" component={RoadmapPage} />
+      <PrivateRoute exact path="/documents" component={DocumentsPage} />
+      
+      {/* Solo admin */}
+      <PrivateRoute exact path="/admin/dashboard" component={AdminDashboardPage} requiredRole="admin" />
+
+      {/* Raíz */}
       <Route exact path="/" render={() => <Redirect to="/login" />} />
     </IonRouterOutlet>
   );
