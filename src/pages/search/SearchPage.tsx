@@ -31,7 +31,7 @@ const SearchPage: React.FC = () => {
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    history.push('/login');
+    window.location.href = '/login';
   };
 
   const filtrados = TRAMITES_DEMO.filter((t) => {

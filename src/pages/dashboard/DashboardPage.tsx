@@ -49,7 +49,7 @@ const DashboardPage: React.FC = () => {
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    history.push('/login');
+    window.location.href = '/login';
   };
 
   // Re-leer localStorage al volver a esta ruta (el history.listen detecta la llegada)

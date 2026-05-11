@@ -40,7 +40,7 @@ const DocumentsPage: React.FC = () => {
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    history.push('/login');
+    window.location.href = '/login';
   };
 
   // Filtrar por carpeta Y por búsqueda de texto
