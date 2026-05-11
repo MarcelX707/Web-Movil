@@ -10,8 +10,8 @@ Plataforma web y móvil para la gestión de trámites municipales de la Municipa
 
 ## Integrantes del Grupo
 
-Benjamin Leiva
-Marcel Gutierrez
+Benjamin Leiva,
+Marcel Gutierrez,
 Martin Basulto
 
 ---
