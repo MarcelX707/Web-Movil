@@ -10,12 +10,9 @@ Plataforma web y móvil para la gestión de trámites municipales de la Municipa
 
 ## Integrantes del Grupo
 
-| Nombre | Rol |
-|--------|-----|
-| (Integrante 1) | Frontend |
-| (Integrante 2) | Backend |
-| (Integrante 3) | UI/UX & Fullstack |
-| (Integrante 4) | DevOps & Base de datos |
+Benjamin Leiva
+Marcel Gutierrez
+Martin Basulto
 
 ---
 
@@ -171,5 +168,4 @@ Usuario rol "user" → accede a /admin/dashboard → redirige a /dashboard
 - **Backend (EP 2):** Node.js + Express / Flask
 - **Base de datos (EP 2):** PostgreSQL
 
-# Web-Movil
-Entregables
+
