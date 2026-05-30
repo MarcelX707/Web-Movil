@@ -1,20 +1,29 @@
 // src/pages/documents/DocumentsPage.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react'; // <-- NUEVO: Importamos useEffect
 import {
   IonPage, IonHeader, IonToolbar, IonTitle, IonContent,
   IonList, IonItem, IonLabel, IonIcon, IonBadge, IonButton,
   IonButtons, IonSearchbar, IonFab, IonFabButton,
   IonGrid, IonRow, IonCol, IonBackButton,
+  IonLoading // <-- NUEVO: Para mostrar un símbolo de carga
 } from '@ionic/react';
 import { documentOutline, downloadOutline, addOutline, folderOpenOutline, logOutOutline } from 'ionicons/icons';
 import { useHistory } from 'react-router-dom';
 import { Documento } from '../../types';
+import api from '../../services/api'; // <-- NUEVO: Importamos la conexión a tu backend
+
+// NUEVO: Definimos cómo viene la carpeta desde tu PostgreSQL
+interface CarpetaDB {
+  id_carpeta: number;
+  nombre_carpeta: string;
+}
 
 // FIX: cada documento tiene categoría para poder filtrar por carpeta
 interface DocumentoConCategoria extends Documento {
-  categoria: 'Resoluciones' | 'Formularios' | 'Informes';
+  categoria: string; // <-- Lo cambiamos a string general porque ahora vendrá de la BD
 }
 
+// Mantenemos tus documentos falsos por ahora, hasta que hagamos el endpoint de documentos en el backend
 const TODOS_LOS_DOCUMENTOS: DocumentoConCategoria[] = [
   { id: '1', nombre: 'Resolución N°1234-2024', tipo: 'PDF', fecha: '2024-03-01', estado: 'aprobado', categoria: 'Resoluciones' },
   { id: '2', nombre: 'Resolución N°1100-2023', tipo: 'PDF', fecha: '2023-11-10', estado: 'aprobado', categoria: 'Resoluciones' },
@@ -24,9 +33,6 @@ const TODOS_LOS_DOCUMENTOS: DocumentoConCategoria[] = [
   { id: '6', nombre: 'Informe Ambiental 2023', tipo: 'PDF', fecha: '2023-12-01', estado: 'rechazado', categoria: 'Informes' },
 ];
 
-const CARPETAS = ['Todos', 'Resoluciones', 'Formularios', 'Informes'] as const;
-type Carpeta = typeof CARPETAS[number];
-
 const DocumentsPage: React.FC = () => {
   const history = useHistory();
   const userStr = localStorage.getItem('user');
@@ -34,8 +40,29 @@ const DocumentsPage: React.FC = () => {
   const isAdmin = user?.role === 'admin';
 
   const [query, setQuery] = useState('');
-  // FIX: estado de carpeta seleccionada para filtrar documentos
-  const [carpetaActiva, setCarpetaActiva] = useState<Carpeta>('Todos');
+  
+  // NUEVO: Estados para manejar las carpetas reales de la Base de Datos
+  const [carpetas, setCarpetas] = useState<CarpetaDB[]>([]);
+  const [cargando, setCargando] = useState<boolean>(true);
+
+  // FIX: estado de carpeta seleccionada. Puede ser el ID de la carpeta o 'Todos'
+  const [carpetaActiva, setCarpetaActiva] = useState<number | 'Todos'>('Todos');
+
+  // NUEVO: Esta función va a buscar las carpetas a tu servidor Node.js (EP 2.4)
+  useEffect(() => {
+    const obtenerCarpetas = async () => {
+      try {
+        const respuesta = await api.get('/carpetas');
+        setCarpetas(respuesta.data); // Guardamos lo que respondió PostgreSQL
+      } catch (error) {
+        console.error('Error al cargar carpetas desde la API:', error);
+      } finally {
+        setCargando(false);
+      }
+    };
+
+    obtenerCarpetas();
+  }, []); // El arreglo vacío indica que se ejecuta solo una vez al abrir la pantalla
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -43,115 +70,90 @@ const DocumentsPage: React.FC = () => {
     window.location.href = '/login';
   };
 
-  // Filtrar por carpeta Y por búsqueda de texto
-  const documentosFiltrados = TODOS_LOS_DOCUMENTOS.filter((d) => {
-    const matchCategoria = carpetaActiva === 'Todos' || d.categoria === carpetaActiva;
-    const matchQuery = d.nombre.toLowerCase().includes(query.toLowerCase());
-    return matchCategoria && matchQuery;
-  });
+  // NUEVO: Lógica para filtrar los documentos según la carpeta activa
+  // (Esto tendrás que ajustarlo cuando los documentos también vengan de la BD)
+  const nombreCarpetaActiva = carpetaActiva === 'Todos' 
+    ? 'Todos' 
+    : carpetas.find(c => c.id_carpeta === carpetaActiva)?.nombre_carpeta || '';
 
-  const getEstadoColor = (estado: Documento['estado']) =>
-    ({ aprobado: 'success', pendiente: 'warning', rechazado: 'danger' }[estado]);
+  const documentosFiltrados = TODOS_LOS_DOCUMENTOS.filter(doc => {
+    const coincideCarpeta = carpetaActiva === 'Todos' || doc.categoria === nombreCarpetaActiva;
+    const coincideBusqueda = doc.nombre.toLowerCase().includes(query.toLowerCase());
+    return coincideCarpeta && coincideBusqueda;
+  });
 
   return (
     <IonPage>
       <IonHeader>
         <IonToolbar>
-          <IonButtons slot="start">
-            <IonBackButton defaultHref="/dashboard" text="Volver" />
-          </IonButtons>
-          <IonTitle>Repositorio y Gestión de Documentos</IonTitle>
+          <IonTitle>Repositorio Documental</IonTitle>
           <IonButtons slot="end">
-            <IonButton fill="clear" color="danger" onClick={handleLogout}>
-              <IonIcon icon={logOutOutline} />
-              Cerrar Sesión
+            <IonButton onClick={handleLogout}>
+              <IonIcon slot="icon-only" icon={logOutOutline} />
             </IonButton>
           </IonButtons>
         </IonToolbar>
       </IonHeader>
 
-      <IonContent>
-        <IonSearchbar
-          value={query}
-          onIonChange={(e) => setQuery(e.detail.value!)}
-          placeholder="Buscar documento..."
+      <IonContent className="ion-padding">
+        
+        {/* Mostramos esto mientras Node.js busca la info en la BD */}
+        <IonLoading isOpen={cargando} message="Cargando carpetas del sistema..." />
+
+        <IonSearchbar 
+          value={query} 
+          onIonInput={(e: any) => setQuery(e.target.value)} 
+          placeholder="Buscar documento..." 
         />
 
+        {/* Sección de Filtros por Carpeta */}
         <IonGrid>
           <IonRow>
-            {/* Columna de carpetas — FIX: onClick actualiza carpetaActiva */}
-            <IonCol size="12" sizeMd="3">
-              <IonList>
-                {CARPETAS.map((cat) => (
-                  <IonItem
-                    key={cat}
-                    button
-                    detail
-                    onClick={() => setCarpetaActiva(cat)}
-                    color={carpetaActiva === cat ? 'light' : undefined}
-                    style={{
-                      fontWeight: carpetaActiva === cat ? 'bold' : 'normal',
-                      borderLeft: carpetaActiva === cat ? '3px solid var(--ion-color-primary)' : '3px solid transparent',
-                    }}
-                  >
-                    <IonIcon slot="start" icon={folderOpenOutline} color="warning" />
-                    <IonLabel>{cat}</IonLabel>
-                    {/* Contador de documentos por carpeta */}
-                    <IonBadge color="medium" slot="end">
-                      {cat === 'Todos'
-                        ? TODOS_LOS_DOCUMENTOS.length
-                        : TODOS_LOS_DOCUMENTOS.filter((d) => d.categoria === cat).length}
-                    </IonBadge>
-                  </IonItem>
-                ))}
-              </IonList>
+            <IonCol>
+              <IonButton 
+                fill={carpetaActiva === 'Todos' ? 'solid' : 'outline'} 
+                onClick={() => setCarpetaActiva('Todos')}
+              >
+                Todos
+              </IonButton>
             </IonCol>
-
-            {/* Columna de documentos filtrados */}
-            <IonCol size="12" sizeMd="9">
-              {isAdmin && (
-                <div className="doc-admin-actions">
-                  <IonButton size="small" fill="outline">
-                    <IonIcon slot="start" icon={addOutline} />Subir Archivo
-                  </IonButton>
-                  <IonButton size="small" fill="outline">
-                    <IonIcon slot="start" icon={addOutline} />Nueva Carpeta
-                  </IonButton>
-                </div>
-              )}
-
-              {documentosFiltrados.length === 0 ? (
-                <IonItem lines="none">
-                  <IonLabel color="medium" className="ion-text-center">
-                    <p>No hay documentos en esta carpeta.</p>
-                  </IonLabel>
-                </IonItem>
-              ) : (
-                <IonList>
-                  {documentosFiltrados.map((doc) => (
-                    <IonItem key={doc.id} button>
-                      <IonIcon slot="start" icon={documentOutline} color="primary" />
-                      <IonLabel>
-                        <h2>{doc.nombre}</h2>
-                        <p>{doc.tipo} · {doc.fecha}</p>
-                      </IonLabel>
-                      <IonBadge color={getEstadoColor(doc.estado)} slot="end">
-                        {doc.estado}
-                      </IonBadge>
-                      <IonButton fill="clear" slot="end">
-                        <IonIcon icon={downloadOutline} />
-                      </IonButton>
-                    </IonItem>
-                  ))}
-                </IonList>
-              )}
-            </IonCol>
+            
+            {/* NUEVO: Iteramos sobre las carpetas reales de la BD */}
+            {carpetas.map(carpeta => (
+              <IonCol key={carpeta.id_carpeta}>
+                <IonButton 
+                  fill={carpetaActiva === carpeta.id_carpeta ? 'solid' : 'outline'} 
+                  onClick={() => setCarpetaActiva(carpeta.id_carpeta)}
+                >
+                  {carpeta.nombre_carpeta}
+                </IonButton>
+              </IonCol>
+            ))}
           </IonRow>
         </IonGrid>
 
+        {/* Lista de Documentos */}
+        <IonList>
+          {documentosFiltrados.map((doc) => (
+            <IonItem key={doc.id}>
+              <IonIcon icon={documentOutline} slot="start" />
+              <IonLabel>
+                <h2>{doc.nombre}</h2>
+                <p>{doc.fecha} - {doc.tipo}</p>
+              </IonLabel>
+              <IonButton fill="clear" slot="end">
+                <IonIcon icon={downloadOutline} />
+              </IonButton>
+            </IonItem>
+          ))}
+        </IonList>
+
+        {/* Botón flotante solo para Administradores */}
         {isAdmin && (
           <IonFab vertical="bottom" horizontal="end" slot="fixed">
-            <IonFabButton color="primary"><IonIcon icon={addOutline} /></IonFabButton>
+            <IonFabButton>
+              <IonIcon icon={addOutline} />
+            </IonFabButton>
           </IonFab>
         )}
       </IonContent>
