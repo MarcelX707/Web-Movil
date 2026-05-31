@@ -6,6 +6,7 @@ import {
 } from '@ionic/react';
 import { logoGoogle, keyOutline, mailOutline, lockClosedOutline } from 'ionicons/icons';
 import { useHistory, Link } from 'react-router-dom';
+import AuthService from '../../services/auth.service';
 
 const LoginPage: React.FC = () => {
   const history = useHistory();
@@ -14,21 +15,20 @@ const LoginPage: React.FC = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) { setError('Por favor completa todos los campos.'); return; }
     setLoading(true);
     setError('');
-    setTimeout(() => {
-      localStorage.setItem('user', JSON.stringify({
-        id: '1', nombre: email.split('@')[0], apellido: '',
-        rut: '', email, region: '', comuna: '',
-        role: email.includes('admin') ? 'admin' : 'user',
-      }));
-      localStorage.setItem('token', 'demo-token-ep1');
+    try {
+      await AuthService.login(email, password);
       setLoading(false);
       history.push('/dashboard');
-    }, 800);
+    } catch (err: any) {
+      setLoading(false);
+      const msg = err.response?.data?.error || 'Error al iniciar sesión. Por favor verifica tus credenciales.';
+      setError(msg);
+    }
   };
 
   const handleGoogle = () => {

@@ -109,6 +109,20 @@ const AuthService = {
   },
 
   /**
+   * Actualiza los datos de perfil del usuario en la base de datos real
+   */
+  updateProfile: async (id: string, profileData: {
+    nombre: string;
+    apellido: string;
+    email: string;
+  }): Promise<User> => {
+    const response = await axios.put(`${API_URL}/auth/profile/${id}`, profileData);
+    const updatedUser = response.data;
+    localStorage.setItem('user', JSON.stringify(updatedUser));
+    return updatedUser;
+  },
+
+  /**
    * Verifica si el usuario tiene rol de administrador
    */
   isAdmin: (): boolean => {

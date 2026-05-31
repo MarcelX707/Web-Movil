@@ -7,6 +7,7 @@ import {
 } from '@ionic/react';
 import { personOutline, cameraOutline, saveOutline, closeOutline } from 'ionicons/icons';
 import { useHistory } from 'react-router-dom';
+import AuthService from '../../services/auth.service';
 
 const ProfilePage: React.FC = () => {
   const history = useHistory();
@@ -20,12 +21,30 @@ const ProfilePage: React.FC = () => {
   const [nombreUsuario, setNombreUsuario] = useState(user?.nombreUsuario || '');
   const [saved, setSaved] = useState(false);
 
-  const handleSave = () => {
-    // FIX: actualizar localStorage para que el Dashboard muestre el nombre nuevo inmediatamente
-    const updatedUser = { ...user, nombre, apellido, email, telefono, nombreUsuario };
-    localStorage.setItem('user', JSON.stringify(updatedUser));
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
+  const [error, setError] = useState('');
+
+  const handleSave = async () => {
+    setError('');
+    setSaved(false);
+    if (!nombre || !apellido || !email) {
+      setError('Nombre, apellido y correo son obligatorios.');
+      return;
+    }
+
+    try {
+      if (user?.id) {
+        await AuthService.updateProfile(user.id, { nombre, apellido, email });
+      } else {
+        // Fallback en caso de que no haya id de usuario en la sesion ficticia
+        const updatedUser = { ...user, nombre, apellido, email, telefono, nombreUsuario };
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+      }
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    } catch (err: any) {
+      const msg = err.response?.data?.error || 'Error al guardar los cambios en el servidor.';
+      setError(msg);
+    }
   };
 
   return (
@@ -80,6 +99,12 @@ const ProfilePage: React.FC = () => {
           {saved && (
             <IonText color="success">
               <p className="ion-padding-start">✓ Cambios guardados correctamente</p>
+            </IonText>
+          )}
+
+          {error && (
+            <IonText color="danger">
+              <p className="ion-padding-start">✗ {error}</p>
             </IonText>
           )}
 

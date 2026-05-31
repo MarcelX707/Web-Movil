@@ -7,6 +7,7 @@ import {
   IonSelect, IonSelectOption,
 } from '@ionic/react';
 import { useHistory } from 'react-router-dom';
+import AuthService from '../../services/auth.service';
 
 const REGIONES = [
   'Arica y Parinacota', 'Tarapacá', 'Antofagasta', 'Atacama',
@@ -31,7 +32,7 @@ const RegisterPage: React.FC = () => {
   const validateRut = (rut: string) =>
     /^\d{1,2}\.\d{3}\.\d{3}-[\dkK]$/.test(rut);
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     if (Object.values(formData).some((v) => !v)) { setError('Todos los campos son obligatorios.'); return; }
@@ -41,18 +42,15 @@ const RegisterPage: React.FC = () => {
     if (!termsAccepted) { setError('Debes aceptar los términos y condiciones.'); return; }
 
     setLoading(true);
-    setTimeout(() => {
-      localStorage.setItem('user', JSON.stringify({
-        id: Date.now().toString(),
-        nombre: formData.nombre, apellido: formData.apellido,
-        rut: formData.rut, email: formData.email,
-        region: formData.region, comuna: formData.comuna,
-        role: 'user',
-      }));
-      localStorage.setItem('token', 'demo-token-register');
+    try {
+      await AuthService.register(formData);
       setLoading(false);
       history.push('/dashboard');
-    }, 800);
+    } catch (err: any) {
+      setLoading(false);
+      const msg = err.response?.data?.error || 'Error al registrar usuario. Por favor intenta de nuevo.';
+      setError(msg);
+    }
   };
 
   /* Estilo para inputs nativos — evita el bug de solapamiento de Ionic */
